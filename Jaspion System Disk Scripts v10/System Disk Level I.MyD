@@ -1,0 +1,130 @@
+##############################
+#  Jaspion MyDefrag Scripts  #
+##############################
+
+#  System Disk Optimization v10.2013.10.16.4.MkII alpha
+#  compatible with MyDefrag v4.3.0 and 4.3.1
+
+Title('System Disk Level I')
+Description('Fast-processing script aimed at providing (or maintaining)
+and effective performance boost; it is a good compromise between fast
+processing and lasting performance.')
+
+# Load the variables from the 'System Disk Variables.MyD' script.
+RunScript('System Disk Variables.MyD')
+
+# Load the exclusion list to prevent certain files from being processed.
+!include "CONFIGFILE - System Disk Global Exclusion List.txt"!
+
+/* Write the header to the logfile. See the 'Settings.MyD' file for the
+   definition of the 'LogHeader' string. */
+WriteLogfile('!ScriptTitle!.log','LogHeader')
+
+/* Select and process the system volume. */
+VolumeSelect
+  CommandlineVolumes()
+VolumeActions
+
+  /* Write the 'before' statistics to the logfile. See the 'Settings.MyD' file
+     for the definition of the 'LogBefore' string. */
+  AppendLogfile('!ScriptTitle!.log','LogBefore')
+
+  /* Run the variables script again to update volume dependant values. */
+  RunScript('System Disk Variables.MyD')
+
+  /* Place files at a determined position on the disk. */
+  MakeGap(RoundUp(SystemFilesPosition,RoundSystemFilesPosition), DoNotVacate)
+
+  /* Zone 1 - Directories, and a gap. */
+  FileSelect
+    Directory(yes)
+  FileActions
+    Defragment()
+    MoveUpToZone()
+    FastFill(WithShuffling)
+    AddGap(RoundUp(ZoneEnd + DirectoriesGap,RoundDirectories), DoNotVacate)
+  FileEnd
+  
+  /* Place files at the beginning of the disk. */
+  MakeGap(0)
+
+  /* Zone 2 - MFT and some other special NTFS files, and a gap. */
+  FileSelect
+    SelectNtfsSystemFiles(yes)
+  FileActions
+    PlaceNtfsSystemFiles(Ascending,NtfsReservedArea)
+  FileEnd
+
+  /* Zone 3 - Top Priority files. */
+  FileSelect
+    !include "CONFIGFILE - Top Priority Files for System Disk.txt"!
+  FileActions
+    Defragment(Fast)
+    Defragment()
+    MoveUpToZone()
+    FastFill(WithShuffling)
+  FileEnd
+
+  /* Zone 4 - Fonts, registry, boot, prefetch, and high priority files. */
+  FileSelect
+    ImportListFromBootOptimize()
+      or ImportListFromProgramHints("*.pf")
+      or !include "CONFIGFILE - System Disk Font Files.txt"!
+      or !include "CONFIGFILE - High Priority Files for System Disk.txt"!
+      or DirectoryPath("?:\Windows\*\config")
+      or FileName("ntuser*")
+      or FileName("UsrClass*")
+        and not(!include "CONFIGFILE - System Disk Boot and Prefetch Exclusion List.txt"!)
+  FileActions
+    Defragment(ChunkSize(64Mi))
+    MoveUpToZone()
+    FastFill(WithShuffling)
+    AddGap(RoundDown(Minimum(ZoneEnd + SmallGap, ZoneEnd + SmallVolumeFreeGap),RoundGapSize),DoNotVacate)
+  FileEnd
+
+  /* Zone 5 - System and program files. */
+  FileSelect
+    !include "CONFIGFILE - System and Program Files.txt"!
+      and not(!include "CONFIGFILE - System and Program Files Exclusion List.txt"!)
+  FileActions
+    Defragment(ChunkSize(64Mi))
+    MoveUpToZone()
+    FastFill()
+    AddGap(RoundDown(Minimum(ZoneEnd + LargeGap, ZoneEnd + LargeVolumeFreeGap),RoundGapSize),DoNotVacate)
+  FileEnd
+
+  /* Zone 6 - High priority documents. */
+  FileSelect
+    !include "CONFIGFILE - High Priority Documents.txt"!
+        and not(!include "CONFIGFILE - System Disk Last Files.txt"!)
+  FileActions
+    Defragment(ChunkSize(64Mi))
+    MoveUpToZone()
+    FastFill()
+  FileEnd
+
+  /* Zone 7 - All files. */
+  FileSelect
+    All
+        and not(!include "CONFIGFILE - System Disk Last Files.txt"!)
+  FileActions
+    Defragment(ChunkSize(64Mi))
+    MoveUpToZone()
+  FileEnd
+
+  /* Zone 8 - Files to the end of the disk. */
+  FileSelect
+    All
+  FileActions
+    MoveToEndOFDisk()
+  FileEnd
+
+  /* Write the "after" statistics to the logfile. See the "Settings.MyD" file
+     for the definition of the "LogAfter" string. */
+  AppendLogfile("!ScriptTitle!.log","LogAfter")
+
+VolumeEnd
+
+/* Write the footer to the logfile. See the "Settings.MyD" file for the
+   definition of the "LogFooter" string. */
+AppendLogfile("!ScriptTitle!.log","LogFooter")

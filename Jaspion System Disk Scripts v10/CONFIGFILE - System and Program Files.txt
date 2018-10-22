@@ -1,0 +1,22 @@
+##############################
+#  Jaspion MyDefrag Scripts  #
+##############################
+
+#  CONFIGFILE - System and Program Files v2.5.2013.09.09.1 beta
+#  compatible with MyDefrag v4.3.0 and v4.3.1 
+
+#  This file is an integral part of the System Disk
+#  and Automatic Optimization Scripts.
+
+/* Below is a list of files that will be included in the main program and system zone. */
+
+  DirectoryName("AppData")
+    or DirectoryName("Application Data")
+    or DirectoryName("Games")
+    or DirectoryName("Local Settings")
+    or DirectoryName("Portable Programs")
+    or DirectoryName("PortableApps.com")
+    or DirectoryName("Program Data")
+    or DirectoryName("ProgramData")
+    or DirectoryName("Program Files*")
+    or DirectoryPath("?:\Windows")

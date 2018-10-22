@@ -1,0 +1,13 @@
+##############################
+#  Jaspion MyDefrag Scripts  #
+##############################
+
+#  CONFIGFILE - High Priority Documents v1.0.2013.09.09.1 beta
+#  compatible with MyDefrag v4.3.0 and v4.3.1 
+
+#  This file is an integral part of the System Disk
+#  and Automatic Optimization Scripts.
+
+/* . */
+
+  FileName("87hjkhbsdf8721309jasdm2yu")

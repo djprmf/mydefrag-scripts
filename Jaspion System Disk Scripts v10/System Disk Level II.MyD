@@ -1,0 +1,150 @@
+##############################
+#  Jaspion MyDefrag Scripts  #
+##############################
+
+#  System Disk Optimization v10.2013.10.13.2.MkII alpha
+#  compatible with MyDefrag v4.3.0 and 4.3.1
+
+Title('System Disk Level II')
+Description('Give near-maximum performance to the most critically
+important files. Maintain the sorting of the most important program files.')
+
+# Load the variables from the 'System Disk Variables.MyD' script.
+RunScript('System Disk Variables.MyD')
+
+# Load the exclusion list to prevent certain files from being processed.
+!include "CONFIGFILE - System Disk Global Exclusion List.txt"!
+
+/* Write the header to the logfile. See the 'Settings.MyD' file for the
+   definition of the 'LogHeader' string. */
+WriteLogfile('!ScriptTitle!.log','LogHeader')
+
+/* Select and process the system volume. */
+VolumeSelect
+  CommandlineVolumes()
+VolumeActions
+
+  /* Write the 'before' statistics to the logfile. See the 'Settings.MyD' file
+     for the definition of the 'LogBefore' string. */
+  AppendLogfile('!ScriptTitle!.log','LogBefore')
+
+  /* Run the variables script again to update volume dependant values. */
+  RunScript('System Disk Variables.MyD')
+
+  /* Place files at a determined position on the disk. */
+  MakeGap(RoundUp(SystemFilesPosition,RoundSystemFilesPosition), DoNotVacate)
+
+  /* Zone 1 - Directories, and a gap. */
+  FileSelect
+    Directory(yes)
+  FileActions
+    SortByName(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+    AddGap(RoundUp(ZoneEnd + DirectoriesGap,RoundDirectories), DoNotVacate)
+  FileEnd
+  
+  /* Place files at the beginning of the disk. */
+  MakeGap(0)
+
+  /* Zone 2 - MFT and some other special NTFS files, and a gap. */
+  FileSelect
+    SelectNtfsSystemFiles(yes)
+  FileActions
+    PlaceNtfsSystemFiles(Ascending,NtfsReservedArea)
+  FileEnd
+
+  /* Zone 3 - Top Priority files. */
+  FileSelect
+    !include "CONFIGFILE - Top Priority Files for System Disk.txt"!
+  FileActions
+    SortByName(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+  FileEnd
+
+  /* Zone 4 - Font files. */
+  FileSelect
+    !include "CONFIGFILE - System Disk Font Files.txt"!
+  FileActions
+    SortByName(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+  FileEnd
+
+  /* Zone 5 - Registry files. */
+  FileSelect
+    DirectoryPath("?:\Windows\*\config")
+      or FileName("ntuser*")
+      or FileName("UsrClass*")
+  FileActions
+    SortByName(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+  FileEnd
+
+  /* Zone 6 - Boot files. */
+  FileSelect
+    ImportListFromBootOptimize()
+        and not(!include "CONFIGFILE - System Disk Boot and Prefetch Exclusion List.txt"!)
+  FileActions
+    SortByImportSequence(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+  FileEnd
+
+  /* Zone 7 - Prefetch files. */
+  FileSelect
+    ImportListFromProgramHints("*.pf")
+        and not(!include "CONFIGFILE - System Disk Boot and Prefetch Exclusion List.txt"!)
+  FileActions
+    SortByImportSequence(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+  FileEnd
+
+  /* Zone 8 - High Priority files. */
+  FileSelect
+    !include "CONFIGFILE - High Priority Files for System Disk.txt"!
+  FileActions
+    SortByName(Ascending SkipBlock(ZONE220N * 0.05,ZONE222N * 0.05))
+  FileEnd
+
+  /* Zone 9 - System and program files. */
+  FileSelect
+    All
+      and not(!include "CONFIGFILE - System and Program Files Exclusion List.txt"!)
+  FileActions
+    Defragment(Fast)
+    Defragment()
+    MoveUpToZone()
+    FastFill(WithShuffling)
+    AddGap(RoundDown(Minimum(ZoneEnd + LargeGap, ZoneEnd + LargeVolumeFreeGap),RoundGapSize),DoNotVacate)
+  FileEnd
+
+  /* Zone 10 - High priority documents. */
+  FileSelect
+    !include "CONFIGFILE - High Priority Documents.txt"!
+        and not(!include "CONFIGFILE - System Disk Last Files.txt"!)
+  FileActions
+    Defragment(Fast)
+    Defragment()
+    MoveUpToZone()
+    FastFill(WithShuffling)
+  FileEnd
+
+  /* Zone 11 - All files. */
+  FileSelect
+    All
+        and not(!include "CONFIGFILE - System Disk Last Files.txt"!)
+  FileActions
+    Defragment(Fast)
+    Defragment()
+    MoveUpToZone()
+    FastFill(WithShuffling)
+  FileEnd
+
+  /* Zone 12 - Files to the end of the disk. */
+  FileSelect
+    All
+  FileActions
+    MoveToEndOFDisk()
+  FileEnd
+
+  /* Write the "after" statistics to the logfile. See the "Settings.MyD" file
+     for the definition of the "LogAfter" string. */
+  AppendLogfile("!ScriptTitle!.log","LogAfter")
+
+VolumeEnd
+
+/* Write the footer to the logfile. See the "Settings.MyD" file for the
+   definition of the "LogFooter" string. */
+AppendLogfile("!ScriptTitle!.log","LogFooter")
